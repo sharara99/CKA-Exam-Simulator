@@ -8,20 +8,45 @@ function processQuestionContent(content) {
     // First, preserve existing HTML formatting
     let processedContent = content;
     
-    // Add click-to-copy functionality for URLs - PROCESS FIRST
-    // Match complete URLs like: 
-    // https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
-    // https://raw.githubusercontent.com/projectcalico/calico/v3.29.2/manifests/tigera-operator.yaml
+    // Static variable for Calico URL - must be handled as complete unit
+    const CALICO_URL = 'https://raw.githubusercontent.com/projectcalico/calico/v3.29.2/manifests/tigera-operator.yaml';
+    const CALICO_PLACEHOLDER = '__CALICO_URL_PLACEHOLDER__';
+    
+    // Replace Calico URL with placeholder first (before any regex processing)
+    processedContent = processedContent.replace(new RegExp(CALICO_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), CALICO_PLACEHOLDER);
+    
+    // Add click-to-copy functionality for URLs - PROCESS FIRST, BEFORE ANY OTHER TRANSFORMATIONS
+    // This function matches complete URLs and makes them clickable/copyable
+    // Examples:
+    // - http://example.org/echo (working example)
+    // - https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+    // - https://raw.githubusercontent.com/projectcalico/calico/v3.29.2/manifests/tigera-operator.yaml
+    // - https://argoproj.github.io/argo-helm
+    
+    // Match complete URLs - match everything from https:// or http:// until whitespace or newline
+    // Use a pattern that matches all valid URL characters (letters, numbers, dots, slashes, hyphens, etc.)
+    // Stop only at whitespace, newlines, or HTML tags
     processedContent = processedContent.replace(
-        /(https?:\/\/[^\s<>"{}|\\^`]+)/g,
+        /(https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]+)/g,
         function(match) {
             // Skip if already inside an HTML tag
             if (match.includes('<') || match.includes('>')) {
                 return match;
             }
-            // Remove trailing punctuation that might not be part of the URL (but keep valid URL chars like /, :, etc.)
-            const cleanedMatch = match.replace(/[.,;!?]+$/, '');
-            return '<span class="clickable-filepath" data-copy-text="' + cleanedMatch + '" title="Click to copy URL">' + cleanedMatch + '</span>';
+            
+            // Use the match as-is (it's the full URL)
+            const fullUrl = match;
+            
+            // Escape HTML special characters for the data attribute
+            const escapedUrl = fullUrl
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // Return the clickable span with the full URL - same format as working example
+            return '<span class="clickable-filepath" data-copy-text="' + escapedUrl + '" title="Click to copy URL">' + fullUrl + '</span>';
         }
     );
     
@@ -166,16 +191,48 @@ function processQuestionContent(content) {
         '<span class="clickable-storage" data-copy-text="$1" title="Click to copy storage size">$1</span> storage'
     );
     
-    // Version numbers: value
+    // Version numbers: value (skip if already inside a clickable element like URLs)
     processedContent = processedContent.replace(
         /(v[0-9]+\.[0-9]+\.[0-9]+)/g,
-        '<span class="clickable-version" data-copy-text="$1" title="Click to copy version">$1</span>'
+        function(match, p1, offset, string) {
+            // Check if this match is inside an existing clickable span (especially URL spans)
+            // Look backwards to see if we're inside a span tag
+            const before = string.substring(Math.max(0, offset - 200), offset);
+            
+            // Count opening and closing span tags before this position
+            const openSpans = (before.match(/<span[^>]*>/g) || []).length;
+            const closeSpans = (before.match(/<\/span>/g) || []).length;
+            
+            // If there are more open spans than closed, we're inside a span
+            if (openSpans > closeSpans) {
+                // We're inside a span, skip this match
+                return match;
+            }
+            
+            return '<span class="clickable-version" data-copy-text="' + match + '" title="Click to copy version">' + match + '</span>';
+        }
     );
     
-    // File paths: value
+    // File paths: value (skip if already inside a clickable element, especially URLs)
     processedContent = processedContent.replace(
         /(\/[a-zA-Z0-9-_\/\.]+\.(yaml|yml|log|conf|json))/g,
-        '<span class="clickable-filepath" data-copy-text="$1" title="Click to copy file path">$1</span>'
+        function(match, p1, p2, offset, string) {
+            // Check if this match is inside an existing clickable span (especially URL spans)
+            // Look backwards to see if we're inside a span tag
+            const before = string.substring(Math.max(0, offset - 200), offset);
+            
+            // Count opening and closing span tags before this position
+            const openSpans = (before.match(/<span[^>]*>/g) || []).length;
+            const closeSpans = (before.match(/<\/span>/g) || []).length;
+            
+            // If there are more open spans than closed, we're inside a span
+            if (openSpans > closeSpans) {
+                // We're inside a span, skip this match
+                return match;
+            }
+            
+            return '<span class="clickable-filepath" data-copy-text="' + match + '" title="Click to copy file path">' + match + '</span>';
+        }
     );
     
     // Container images: value
@@ -427,6 +484,16 @@ function processQuestionContent(content) {
         /<\/li><li>/g, 
         '</li>\n<li>'
     );
+    
+    // Restore Calico URL as clickable span (after all regex processing is complete)
+    const calicoEscapedUrl = CALICO_URL
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    const calicoClickableSpan = '<span class="clickable-filepath" data-copy-text="' + calicoEscapedUrl + '" title="Click to copy URL">' + CALICO_URL + '</span>';
+    processedContent = processedContent.replace(CALICO_PLACEHOLDER, calicoClickableSpan);
     
     return processedContent;
 }
