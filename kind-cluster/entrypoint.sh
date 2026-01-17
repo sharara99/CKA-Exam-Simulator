@@ -130,6 +130,20 @@ cp /home/candidate/.kube/config /home/candidate/.kube/kubeconfig
 echo "$(date '+%Y-%m-%d %H:%M:%S') | ✅ Kubeconfig copied and configured with k8s-api-server:6445 and insecure-skip-tls-verify"
 
 # ===============================================================================
+#   Download cri-dockerd package to /home/candidate/downloads
+# ===============================================================================
+echo "$(date '+%Y-%m-%d %H:%M:%S') | Downloading cri-dockerd package to /home/candidate/downloads..."
+mkdir -p /home/candidate/downloads
+CRI_DOCKERD_URL="https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb"
+if wget -q --timeout=30 "${CRI_DOCKERD_URL}" -O /home/candidate/downloads/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb 2>/dev/null; then
+    chmod 644 /home/candidate/downloads/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+    chown candidate:candidate /home/candidate/downloads/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+    echo "$(date '+%Y-%m-%d %H:%M:%S') | ✅ cri-dockerd package downloaded successfully to /home/candidate/downloads/"
+else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') | ⚠️  WARNING: Failed to download cri-dockerd package (will retry later if needed)"
+fi
+
+# ===============================================================================
 #   Setup CKA Exam Resources
 # ===============================================================================
 echo "$(date '+%Y-%m-%d %H:%M:%S') | Setting up CKA exam resources..."

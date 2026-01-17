@@ -85,8 +85,10 @@ RUN echo "candidate:x:1000:1000:candidate:/home/candidate:/bin/bash" >> /etc/pas
 
 # create a home directory for the candidate user
 RUN mkdir -p /home/candidate/.kube
+RUN mkdir -p /home/candidate/downloads
 RUN chown -R candidate:candidate /home/candidate
 RUN chmod 755 /home/candidate/.kube
+RUN chmod 755 /home/candidate/downloads
 
 EXPOSE 6443
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
