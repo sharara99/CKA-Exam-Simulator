@@ -76,6 +76,15 @@ done
 
 echo "API server is ready"
 
+# Download cri-dockerd package to /var/package on the cluster node
+log "Downloading cri-dockerd package to /var/package..."
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null candidate@k8s-api-server "mkdir -p /var/package && wget -q https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb -O /var/package/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb && chmod 644 /var/package/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb"
+if [ $? -eq 0 ]; then
+  log "cri-dockerd package downloaded successfully"
+else
+  log "WARNING: Failed to download cri-dockerd package"
+fi
+
 #Run fast setup for speed optimization
 log "Running FAST CKA 2025 setup..."
 if [ -f "/tmp/exam-assets/scripts/setup/fast_setup.sh" ]; then

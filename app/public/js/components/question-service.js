@@ -8,31 +8,26 @@ function processQuestionContent(content) {
     // First, preserve existing HTML formatting
     let processedContent = content;
     
-    // Add click-to-copy functionality for URLs (improved to handle URLs on their own lines)
-    // Process URLs first, before other patterns that might interfere
-    // Match URLs that may be on their own line or within text
+    // Add click-to-copy functionality for URLs - PROCESS FIRST
+    // Match complete URLs like: 
+    // https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+    // https://raw.githubusercontent.com/projectcalico/calico/v3.29.2/manifests/tigera-operator.yaml
     processedContent = processedContent.replace(
-        /(https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]+)/g,
+        /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/g,
         function(match) {
             // Skip if already inside an HTML tag
             if (match.includes('<') || match.includes('>')) {
                 return match;
             }
-            return '<span class="clickable-url" data-copy-text="' + match + '" title="Click to copy URL">' + match + '</span>';
+            return '<span class="clickable-filepath" data-copy-text="' + match + '" title="Click to copy URL">' + match + '</span>';
         }
     );
     
     // Add click-to-copy functionality for sysctl parameters (net.*=value format)
-    // Handle both standalone and list item formats (with leading dash)
+    // Match: net.ipv6.conf.all.forwarding=1, net.ipv4.ip_forward=1, etc.
     processedContent = processedContent.replace(
-        /(-?\s*)(net\.[a-zA-Z0-9._-]+=[0-9]+)/g,
-        function(match, prefix, param) {
-            // Skip if already inside an HTML tag
-            if (match.includes('<') || match.includes('>')) {
-                return match;
-            }
-            return prefix + '<span class="clickable-sysctl" data-copy-text="' + param + '" title="Click to copy sysctl parameter">' + param + '</span>';
-        }
+        /(net\.[a-zA-Z0-9._-]+=[0-9]+)/g,
+        '<span class="clickable-filepath" data-copy-text="$1" title="Click to copy sysctl parameter">$1</span>'
     );
     
     // Add click-to-copy functionality for kubectl commands
