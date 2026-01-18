@@ -72,6 +72,14 @@ RUN chown -R candidate:candidate /home/candidate/.kube /home/candidate/.minikube
 RUN chmod 755 /home/candidate/.kube
 RUN chmod 755 /home/candidate/.minikube
 
+# Create downloads directory and download cri-dockerd package
+RUN mkdir -p /home/candidate/downloads
+RUN wget -q https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb -O /home/candidate/downloads/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+RUN chmod 644 /home/candidate/downloads/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+RUN chown candidate:candidate /home/candidate/downloads/cri-dockerd_0.3.9.3-0.ubuntu-jammy_amd64.deb
+RUN chown candidate:candidate /home/candidate/downloads
+RUN chmod 755 /home/candidate/downloads
+
 # Copy exam environment scripts
 COPY scripts/prepare-exam-env.sh /usr/local/bin/prepare-exam-env
 COPY scripts/cleanup-exam-env.sh /usr/local/bin/cleanup-exam-env
